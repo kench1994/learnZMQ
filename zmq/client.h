@@ -30,7 +30,7 @@ public:
 	}
 
 	int connect(const char* peer_host_psz) {
-		return zmq_connect(zmq_sock_ptr_, "tcp://localhost:5570");
+		return zmq_connect(zmq_sock_ptr_, peer_host_psz);
 	}
 
 	
