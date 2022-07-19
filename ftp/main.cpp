@@ -2,27 +2,24 @@
 //#include <string>
 //#include <vector>
 //#include <algorithm>
-#include <Poco/File.h>
-#include <Poco/Net/FTPClientSession.h>
-#include <Poco/StreamCopier.h>
 #include "RC4.h"
+#include <array>
 #include <memory>
 #include <chrono>
 #include <thread>
 #include <iostream>
 #include <unordered_map>
 #include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string.hpp>
+#include <boost/shared_array.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/uuid_generators.hpp>
+//#include <Poco/Net/FTPClientSession.h>
+
 #pragma comment(lib, "bcrypt")
 #define MAX_BUFF_SIZE 2048
 #define MAX_TOKEN_SIZE 50
 
-using Poco::File;
-using Poco::StreamCopier;
-using Poco::Net::FTPClientSession;
 
 
 inline std::string uuid()
@@ -54,69 +51,53 @@ inline void Tipray_Encrypt(const char* v_szSrc, char* v_szDest)
 
 int main(int argc, char **argv)
 {
-	std::string host = "192.168.152.144";
-	std::string username = "server12345";
-	std::string password = "server12345";
-	Poco::UInt16 port = 52004;
+	//std::string host = "192.168.152.144";
+	//std::string username = "server12345";
+	//std::string password = "server12345";
+	//Poco::UInt16 port = 52004;
 
-	std::string ss = "This is a test";
-	char szResult[20]{ '\0' };
-	Tipray_Encrypt(ss.data(), szResult);
+	//std::string ss = "This is a test";
+	//char szResult[20]{ '\0' };
+	//Tipray_Encrypt(ss.data(), szResult);
 
 
-	std::unordered_map<unsigned int, std::shared_ptr<FTPClientSession>> hmapSessions;
-	
-	for (unsigned int i = 0; i < 1; i++)
+	//std::unordered_map<unsigned int, std::shared_ptr<Poco::Net::FTPClientSession>> hmapSessions;
+	//
+	//for (unsigned int i = 0; i < 1; i++)
+	//{
+	//	auto spFtpSession = std::make_shared<Poco::Net::FTPClientSession>(host, port, "", "");
+	//	spFtpSession->login(username, password);
+
+	//	while(!spFtpSession->isLoggedIn()){
+	//		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	//	}
+
+	//	hmapSessions.emplace(i, std::move(spFtpSession));
+	//}
+
+	//int nRet = 0;
+	//std::string strResponse;
+
+	//auto spSession = hmapSessions.at(0);
+
+	//spSession->setFileType(Poco::Net::FTPClientSession::TYPE_BINARY);
+	//spSession->setPassive(true);
+
+	//100M的文件 100 * 1024KB
+	//每次发送64K
+	//需要分1600次发送
+	std::array<boost::shared_array<char>, 16> fileBlocks;
+	for (unsigned int i = 0; i < 16; i++)
 	{
-		auto spFtpSession = std::make_shared<FTPClientSession>(host, port, "", "");
-		spFtpSession->login(username, password);
-
-		while(!spFtpSession->isLoggedIn()){
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
-
-		hmapSessions.emplace(i, std::move(spFtpSession));
+		boost::shared_array<char> spBuffer(new char[65536]);
+		memset(spBuffer.get(), i + 1, 65536);
+		fileBlocks[i] = std::move(spBuffer);
 	}
-
-	int nRet = 0;
-	std::string strResponse;
-
-	auto spSession = hmapSessions.at(0);
-
-	nRet = hmapSessions.at(0)->sendCommand("TYPE", "I", strResponse);
-	
+	//std::ostream& ostr = spSession->beginUpload("ToDesk_Lite.exe");
 
 
-	//nRet = spSession->sendCommand("PASV", strResponse);
-	//std::vector<std::string> vDtsStr;
-	//boost::algorithm::split(vDtsStr, strResponse, boost::is_any_of(",()"));
-	//unsigned int uDtsPort = 0;
-	//if (8 == vDtsStr.size())
-	//	uDtsPort += (boost::lexical_cast<unsigned int>(vDtsStr[5]) << 8 + boost::lexical_cast<unsigned int>(vDtsStr[6]));
-	spSession->setPassive(true);
-	std::ostream& ostr = spSession->beginUpload("ToDesk_Lite.exe");
-	FILE* fp = fopen("C:\\Users\\kench\\Downloads\\ToDesk_Lite.exe", "rb");
-	fseek(fp, 0, SEEK_END);
-	//获取文件大小;
-	auto fileSize = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-
-	long resumeSize = 0;
-	for (long sendSize = 0; sendSize < fileSize; ) {
-		//一次最多发送1024
-		resumeSize = fileSize - sendSize;
-		if (resumeSize > 1024)
-			resumeSize = 1024;
-		//准备空间
-		char* szBuffer = new char[resumeSize];
-		fread(szBuffer, resumeSize, 1, fp);
-		ostr.write(szBuffer, resumeSize);
-		ostr.flush();
-		delete szBuffer;
-		sendSize += resumeSize;
-	}
-	spSession->endUpload();
-	spSession->close();
+	//spSession->endUpload();
+	//spSession->close();
 	getchar();
 	//get file list
 	//std::string str;
